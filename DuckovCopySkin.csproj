@@ -624,7 +624,7 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="ModBehaviour copy.cs" />
+        <Compile Include="ModBehaviour.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>

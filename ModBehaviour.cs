@@ -399,7 +399,30 @@ namespace DuckovCopySkin
         }
         
         /// <summary>
-        /// 判断物品是否应该显示幻化按钮（仅装备，不包括武器）
+        /// 判断物品是否为近战武器
+        /// </summary>
+        private bool IsMeleeWeapon(Item item)
+        {
+            if (item == null)
+                return false;
+            
+            // 方法1：检查物品变量 IsMeleeWeapon
+            if (item.Variables != null && item.GetBool("IsMeleeWeapon", false))
+            {
+                return true;
+            }
+            
+            // 方法2：检查插槽类型
+            if (item.PluggedIntoSlot != null && item.PluggedIntoSlot.Key == "MeleeWeapon")
+            {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        /// <summary>
+        /// 判断物品是否应该显示幻化按钮（装备和近战武器）
         /// </summary>
         private bool ShouldShowTransmogButton(Item item)
         {
@@ -411,10 +434,10 @@ namespace DuckovCopySkin
             {
                 string slotKey = item.PluggedIntoSlot.Key;
                 
-                // 装备类插槽（不包括武器）
+                // 装备类插槽和近战武器
                 bool isEquipment = slotKey == "Helmat" || slotKey == "Armor" || 
                                    slotKey == "FaceMask" || slotKey == "Headset" || 
-                                   slotKey == "Backpack";
+                                   slotKey == "Backpack" || slotKey == "MeleeWeapon";
                 
                 if (isEquipment)
                 {
@@ -424,7 +447,7 @@ namespace DuckovCopySkin
                 return isEquipment;
             }
             
-            // 如果物品在背包中，通过标签判断（不包括武器）
+            // 如果物品在背包中，通过标签和变量判断
             var tags = item.Tags;
             if (tags != null)
             {
@@ -433,7 +456,19 @@ namespace DuckovCopySkin
                                    tags.Contains("FaceMask") || tags.Contains("Mask") ||
                                    tags.Contains("Headset") || tags.Contains("Backpack") || tags.Contains("Bag");
                 
+                // 检查是否为近战武器
+                if (!isEquipment && IsMeleeWeapon(item))
+                {
+                    isEquipment = true;
+                }
+                
                 return isEquipment;
+            }
+            
+            // 如果标签为空，仍然检查是否为近战武器
+            if (IsMeleeWeapon(item))
+            {
+                return true;
             }
             
             return false;
@@ -560,7 +595,7 @@ namespace DuckovCopySkin
         }
         
         /// <summary>
-        /// 判断两个物品是否为同一类别（仅装备）
+        /// 判断两个物品是否为同一类别（装备和近战武器）
         /// </summary>
         private bool IsSameCategory(Item item1, Item item2)
         {
@@ -583,28 +618,46 @@ namespace DuckovCopySkin
         }
         
         /// <summary>
-        /// 获取物品的插槽类型（支持已装备和未装备的物品，仅装备）
+        /// 获取物品的插槽类型（支持已装备和未装备的物品，包括装备和近战武器）
         /// </summary>
         private string GetItemSlotType(Item item)
         {
             if (item == null)
                 return null;
             
-            // 如果物品已经装备，直接返回插槽类型（排除武器）
+            // 如果物品已经装备，直接返回插槽类型（包括近战武器）
             if (item.PluggedIntoSlot != null)
             {
                 string slotKey = item.PluggedIntoSlot.Key;
-                // 只返回装备类型，不返回武器
-                if (slotKey != "Weapon")
-                    return slotKey;
-                return null;
+                
+                // 排除远程武器，但允许近战武器
+                if (slotKey == "Weapon")
+                {
+                    // 检查是否为近战武器（通过变量判断）
+                    if (IsMeleeWeapon(item))
+                    {
+                        return "MeleeWeapon";
+                    }
+                    // 如果是远程武器，返回null
+                    return null;
+                }
+                
+                // 返回其他装备类型（包括近战武器插槽）
+                return slotKey;
             }
             
-            // 如果物品在背包中，通过标签（Tags）判断类型
+            // 如果物品在背包中，通过标签（Tags）和变量判断类型
             var tags = item.Tags;
+            
+            // 首先检查是否为近战武器
+            if (IsMeleeWeapon(item))
+            {
+                return "MeleeWeapon";
+            }
+            
+            // 检查常见的装备类型标签
             if (tags != null)
             {
-                // 检查常见的装备类型标签（不包括武器）
                 if (tags.Contains("Helmat") || tags.Contains("Helmet"))
                     return "Helmat";  // 注意游戏中的拼写
                 if (tags.Contains("Armor") || tags.Contains("Body"))
